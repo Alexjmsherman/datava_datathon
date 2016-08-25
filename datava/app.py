@@ -51,7 +51,7 @@ def skills_survey():
         if form.validate_on_submit():
             q0 = form.q0.data
 
-    return render_template('skills_survey.html', form=form)
+    return render_template('skills_survey.html', form=form, skill_names=skill_names_list)
 
 if __name__ == "__main__":
     app.debug = True
