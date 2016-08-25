@@ -31,5 +31,5 @@ class JobOccupationCategories(Base):
     job_locations = relationship("JobLocations", back_populates="job_occupation_categories")
 
 
-engine = create_engine('sqlite:///C:\\Users\\alsherman\\PycharmProjects\\DataVA\\data_va\\database\\job_locations.db')
+engine = create_engine('sqlite:///C:\\Users\\alsherman\\PycharmProjects\\datava_datathon\\datava\\database\\job_locations.db')
 Base.metadata.create_all(engine)
