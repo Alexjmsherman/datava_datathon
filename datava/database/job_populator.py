@@ -31,9 +31,9 @@ def main():
 
     for ind, row in data.iterrows():
         print(ind)
-#        if ind < 1000:
-#            continue
-        if ind == 100:
+        if ind < 3000:
+            continue
+        if ind == 10000:
             sys.exit()
 
         # extract job data

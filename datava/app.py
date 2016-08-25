@@ -16,15 +16,22 @@ from wtforms.fields.html5 import IntegerRangeField
 from wtforms.validators import NumberRange
 from modules.occupation_prediction import PredictiveModels
 from modules.data_usa_names_and_ids import DataUsaNamesAndIds
-
+from database.models import JobLocations, JobOccupationCategories
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 bootstrap = Bootstrap(app)
+
+# initiate database connection
+engine = create_engine('sqlite:///C:\\Users\\alsherman\\PycharmProjects\\DataVA\\data_va\\database\\job_locations.db')
+Session = sessionmaker(bind=engine)
+session = Session()
+
+### Map information
+#initiate map at the VA library - location of hackathon
 gmaps = googlemaps.Client(key='AIzaSyAb416HhO9hmtIBYR4Zl-zZ3QAF0m7nJGE')
-
-initial_location = None
-
+initial_location = {'lat': 37.5412607, 'lng': -77.4341621}
+locality = ''
 
 ### import skill survey data
 skill_names = pd.read_csv(r'C:\Users\alsherman\Desktop\Programming\hackathon\skills_df.txt')
@@ -113,8 +120,97 @@ class Survey(Form):
 @app.route('/datathon/')
 def index():
     # initiate the map at the VA library - location of hackathon
-    return render_template('index.html', users_address=json.dumps(initial_location))
+    return render_template('index.html')
 
+@app.route('/initial_map/')
+def initial_map():
+    # initiate the map at the VA library - location of hackathon
+    return render_template('initial_map.html', users_address=json.dumps(initial_location))
+
+@app.route('/initial_map/', methods=['POST'])
+def user_map():
+    user_address = request.form.get("zoom-to-area-text", "")
+
+    global initial_location
+    if user_address == "":
+        return render_template('initial_map.html', users_address=json.dumps(initial_location))
+
+    # get locality with google maps
+    geocode_result = gmaps.geocode(user_address)
+    #parse geocode result to get lat and longitude
+    user_latitude = geocode_result[0]['geometry']['location']['lat']
+    user_longitude = geocode_result[0]['geometry']['location']['lng']
+    initial_location = {'lat': user_latitude, 'lng': user_longitude}
+
+    # get locality of user selected location
+    for address_component in geocode_result[0]['address_components']:
+        if 'locality' in address_component['types']:
+            global locality
+            locality = address_component['short_name']
+            break
+
+    # query for listings in locality
+    job_loc = session.query(JobLocations).filter_by(locality=locality).all()
+    locations = create_locations_list(job_loc)
+
+    return render_template('users_map.html', users_address=json.dumps(initial_location), locations=json.dumps(locations))
+
+@app.route('/filter_jobs', methods=['POST'])
+def filter_jobs():
+    # get lists of categories used to filter job listings
+    occupation_categories = request.form.get("job_category_1", "")
+
+    job_loc = session.query(JobLocations).join(JobOccupationCategories).filter(JobLocations.locality==locality).filter(JobOccupationCategories.occupation_category.in_([occupation_categories])).all()
+    locations = create_locations_list(job_loc)
+
+    return render_template('users_map.html', users_address=json.dumps(initial_location), locations=json.dumps(locations))
+
+
+@app.route('/nearby_places', methods=['GET', 'POST'])
+def nearby_places():
+    keyword = request.form.get("search_criteria", "")
+    destination = request.form.get("job_title", "")
+
+    # get geolocation details about selected job
+    selected_job = session.query(JobLocations).filter_by(destination=destination).first()
+    latitude = selected_job.latitude
+    longitude = selected_job.longitude
+
+    # update central point for the map
+    job_location = {'lat': float(latitude.replace("('","").replace("',)","")), 'lng': float(longitude.replace("('","").replace("',)",""))}
+    locations = [{'location': job_location, 'title':destination.replace("'","")}]
+
+
+    # search for nearby places of interest
+    place_of_interest = gmaps.places_nearby(
+        location={'lat':latitude,'lng':longitude},
+        radius=400,
+        keyword=keyword,
+        language=None, min_price=None, max_price=None, name=None, open_now=False,
+        rank_by=None, type=None, page_token=None
+    )
+
+    for result in place_of_interest['results']:
+        lat = result['geometry']['location']['lat']
+        lng = result['geometry']['location']['lng']
+        title = result['name']
+
+        locations.append({'location':{'lat':float(lat),
+                                      'lng':float(lng)},
+                          'title':title.replace("'","")})
+
+    distance = gmaps.distance_matrix(origins=initial_location, destinations=job_location,
+                    mode='walking', language=None, avoid=None, units='imperial',
+                    departure_time=None, arrival_time=None, transit_mode=None,
+                    transit_routing_preference=None, traffic_model=None)
+    minutes_away = distance['rows'][0]['elements'][0]['duration']['text']
+    distance = distance['rows'][0]['elements'][0]['distance']['text']
+
+    return render_template('users_map.html',
+                           users_address=json.dumps(initial_location),
+                           locations=json.dumps(locations),
+                           distance=distance,
+                           minutes_away=minutes_away)
 
 @app.route('/skills_survey/', methods=['GET', 'POST'])
 def skills_survey():
@@ -200,6 +296,21 @@ def skills_survey():
                                    skills_data=json.dumps(skills_data))
 
     return render_template('skills_survey.html', form=form, skill_names=skill_names_list)
+
+
+def create_locations_list(job_loc):
+    locations = [{'location':initial_location,'title':'Selected Location'}]
+
+    if not isinstance(job_loc, list):
+        job_loc = [job_loc]
+
+    for job in job_loc:
+        #todo: some lats and lngs were loaded as tuples with parenthesis, which broke the float casting
+        locations.append({'location':{'lat':float(job.latitude.replace("('","").replace("',)","")),
+                                      'lng':float(job.longitude.replace("('","").replace("',)",""))},
+                                      'title':job.destination.replace("'","")})
+    return locations
+
 
 if __name__ == "__main__":
     app.debug = True
