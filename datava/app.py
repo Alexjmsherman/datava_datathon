@@ -2,6 +2,7 @@ __author__ = 'alsherman'
 
 import json
 import pandas as pd
+import requests
 from flask import Flask, request, render_template, url_for, redirect
 from flask_wtf import Form
 from wtforms import StringField
@@ -14,6 +15,8 @@ from sqlalchemy.orm import sessionmaker
 from wtforms.fields.html5 import IntegerRangeField
 from wtforms.validators import NumberRange
 from modules.occupation_prediction import PredictiveModels
+from modules.data_usa_names_and_ids import DataUsaNamesAndIds
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
@@ -27,10 +30,10 @@ initial_location = None
 skill_names = pd.read_csv(r'C:\Users\alsherman\Desktop\Programming\hackathon\skills_df.txt')
 skill_names_list = skill_names.columns[1:]
 occupation_prediction = PredictiveModels()
+names_and_ids = DataUsaNamesAndIds()
 
 
 ### FORMS
-
 class Survey(Form):
     """ Survey questions including all skills for a user to provide personal ratings  """
     q0 = IntegerRangeField(label=skill_names_list[0], default=0,
@@ -45,7 +48,6 @@ class Survey(Form):
                            validators=[NumberRange(min=0, max=5)])
     q5 = IntegerRangeField(label=skill_names_list[5], default=0,
                            validators=[NumberRange(min=0, max=5)])
-
     q6 = IntegerRangeField(label=skill_names_list[6], default=0,
                            validators=[NumberRange(min=0, max=5)])
     q7 = IntegerRangeField(label=skill_names_list[7], default=0,
@@ -56,7 +58,6 @@ class Survey(Form):
                            validators=[NumberRange(min=0, max=5)])
     q10 = IntegerRangeField(label=skill_names_list[10], default=0,
                            validators=[NumberRange(min=0, max=5)])
-
     q11 = IntegerRangeField(label=skill_names_list[11], default=0,
                            validators=[NumberRange(min=0, max=5)])
     q12 = IntegerRangeField(label=skill_names_list[12], default=0,
@@ -105,9 +106,6 @@ class Survey(Form):
                            validators=[NumberRange(min=0, max=5)])
     q34 = IntegerRangeField(label=skill_names_list[34], default=0,
                            validators=[NumberRange(min=0, max=5)])
-
-
-
 
 
 ### ROUTES
@@ -170,12 +168,35 @@ def skills_survey():
 
             predictions = []
             for ind, row in _result.iterrows():
-                val = {'job': row['job'], 'prob': row['prob']}
+                val = {'job': row['job'], 'prob': row['prob'], 'soc':row['soc']}
                 predictions.append(val)
 
+            # Request skills data on the top matching job
             skills_data = []
+            r = requests.get(r'http://api.datausa.io/api/?show=skill&sumlevel=all&soc={}'.format(predictions[0]['soc']))
+            data_usa = r.json()
+            headers = data_usa['headers']
+            data = data_usa['data']
+            df = pd.DataFrame(data, columns=headers)
+            df = pd.merge(df, names_and_ids.skill_names_and_ids, left_on='skill', right_on='id')
 
-            return render_template('results.html', result=result, predictions=json.dumps(predictions),
+            for ind, row in df.iterrows():
+                skill = {'name': 'Skills for Top Matching Job',
+                         'skill': row['name'],
+                         'soc': row['soc'],
+                         'score': row['value']}
+                skills_data.append(skill)
+
+            # User's skills
+            for ind, skill_pred in enumerate(prediction_data):
+                skill = {'name': 'Your Skills',
+                         'skill': names_and_ids.skill_names_and_ids['name'][ind],
+                         'soc': names_and_ids.skill_names_and_ids['id'][ind],
+                         'score': skill_pred}
+                skills_data.append(skill)
+
+            return render_template('results.html',
+                                   result=result, predictions=json.dumps(predictions),
                                    skills_data=json.dumps(skills_data))
 
     return render_template('skills_survey.html', form=form, skill_names=skill_names_list)

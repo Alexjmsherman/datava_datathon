@@ -19,6 +19,7 @@ class PredictiveModels:
         # get data on jobs and relevant skills
         #todo: load data on github
         skill_df = pd.read_csv(r'C:\Users\alsherman\Desktop\Programming\hackathon\skills_df.txt')
+        self.job_names_map = skill_df[['O*NET-SOC Code','detailed']]
 
         self.model = self.build_model(skill_df)
         self.y = skill_df.detailed   # response
@@ -32,10 +33,23 @@ class PredictiveModels:
         """
         pred = self.model.predict_proba(prediction)
         df = zip(self.y, pred[0])
-        df = pd.DataFrame(df, columns=['job', 'prob'])
+        df = pd.DataFrame(df, columns=['detailed', 'prob'])
         df.sort_values('prob', ascending=False, inplace=True)
+        df = df[0:10]
 
-        return df[0:10]
+        merge_df = pd.merge(df, self.job_names_map, on='detailed', how='left')
+
+        # filter to only jobs that end with .00 in ONET
+        new_df = []
+        for ind, row in merge_df.iterrows():
+            if row['O*NET-SOC Code'][-2:] == '00':
+                new_df.append([row['O*NET-SOC Code'][0:-3].replace('-',''),
+                               row['detailed'],
+                               row['prob']])
+
+        df = pd.DataFrame(new_df, columns=['soc', 'job', 'prob'])
+
+        return df
 
 #        career_ids = self.cip_names_and_ids['id']
 #        career_names = self.cip_names_and_ids['name_long']
