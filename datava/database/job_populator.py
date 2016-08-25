@@ -31,7 +31,7 @@ def main():
 
     for ind, row in data.iterrows():
         print(ind)
-        if ind < 3000:
+        if ind < 3496:
             continue
         if ind == 10000:
             sys.exit()

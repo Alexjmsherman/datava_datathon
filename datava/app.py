@@ -122,6 +122,14 @@ def index():
     # initiate the map at the VA library - location of hackathon
     return render_template('index.html')
 
+@app.route('/job/')
+def tableau_job():
+    return render_template('job.html')
+
+@app.route('/education/')
+def tableau_education():
+    return render_template('education.html')
+
 @app.route('/initial_map/')
 def initial_map():
     # initiate the map at the VA library - location of hackathon
