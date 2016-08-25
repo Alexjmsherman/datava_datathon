@@ -1,7 +1,7 @@
 __author__ = 'alsherman'
 
 import json
-import os
+import pandas as pd
 from flask import Flask, request, render_template, url_for, redirect
 from flask_wtf import Form
 from wtforms import StringField
@@ -36,7 +36,6 @@ class Survey(Form):
 
 
 ### ROUTES
-
 @app.route('/')
 @app.route('/datathon/')
 def index():
@@ -44,16 +43,15 @@ def index():
     return render_template('index.html', users_address=json.dumps(initial_location))
 
 
-@app.route('/', methods=['GET', 'POST'])
-@app.route('/index/', methods=['GET', 'POST'])
-def index():
+@app.route('/skills_survey/', methods=['GET', 'POST'])
+def skills_survey():
     form = Survey()
 
     if request.method == 'POST':
         if form.validate_on_submit():
             q0 = form.q0.data
 
-    return render_template('index.html', form=form)
+    return render_template('skills_survey.html', form=form)
 
 if __name__ == "__main__":
     app.debug = True
