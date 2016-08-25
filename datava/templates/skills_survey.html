@@ -7,7 +7,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>Major Recommendation Tool</title>
 
         <style>
     #view-source {
@@ -35,8 +35,14 @@
     tr {
       font-size: 20px;
     }
-
     </style>
+
+    <script>
+    function SliderUpdate(response, ind) {
+      document.querySelector('#select-'+ind).value = response;
+      }
+    </script>
+
 </head>
 
 <body>
