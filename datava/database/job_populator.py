@@ -30,10 +30,9 @@ def main():
     onet_detailed_dict = create_onet_dict(df=onet_detailed, group_term='Detailed_Occupation')
 
     for ind, row in data.iterrows():
-        if ind < 3496:
+        if ind < 20000:
             continue
-        print(ind)
-        if ind == 10000:
+        if ind == 40000:
             sys.exit()
 
         # extract job data
