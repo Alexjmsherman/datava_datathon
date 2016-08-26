@@ -30,9 +30,9 @@ def main():
     onet_detailed_dict = create_onet_dict(df=onet_detailed, group_term='Detailed_Occupation')
 
     for ind, row in data.iterrows():
-        print(ind)
         if ind < 3496:
             continue
+        print(ind)
         if ind == 10000:
             sys.exit()
 
@@ -72,6 +72,11 @@ def main():
             # Do not use locality from open jobs data set as this needs to match the google API localities
             # from user input locations
             reverse_geocode_result = gmaps.reverse_geocode((latitude, longitude ))
+
+            # skip entries that could not be geocoded
+            if len(reverse_geocode_result) == 0:
+                continue
+
             for address in reverse_geocode_result[0]['address_components']:
                 if 'locality' in address['types']:
                     locality = address['short_name']

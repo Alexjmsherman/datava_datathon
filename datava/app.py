@@ -166,13 +166,17 @@ def user_map():
 @app.route('/filter_jobs', methods=['POST'])
 def filter_jobs():
     # get lists of categories used to filter job listings
-    occupation_categories = request.form.get("job_category_1", "")
+    occupation_categories = []
+    for i in range(1,23):
+        category = "job_category_" + str(i)
+        occupation_category = request.form.get(category, "")
+        if occupation_category != "":
+            occupation_categories.append(occupation_category)
 
-    job_loc = session.query(JobLocations).join(JobOccupationCategories).filter(JobLocations.locality==locality).filter(JobOccupationCategories.occupation_category.in_([occupation_categories])).all()
+    job_loc = session.query(JobLocations).join(JobOccupationCategories).filter(JobLocations.locality==locality).filter(JobOccupationCategories.occupation_category.in_(occupation_categories)).all()
     locations = create_locations_list(job_loc)
 
     return render_template('users_map.html', users_address=json.dumps(initial_location), locations=json.dumps(locations))
-
 
 @app.route('/nearby_places', methods=['GET', 'POST'])
 def nearby_places():
