@@ -29,7 +29,7 @@ session = Session()
 
 ### Map information
 #initiate map at the VA library - location of hackathon
-gmaps = googlemaps.Client(key='AIzaSyAb416HhO9hmtIBYR4Zl-zZ3QAF0m7nJGE')
+gmaps = googlemaps.Client(key='INSERT_API_KEY_HERE')
 initial_location = {'lat': 37.5412607, 'lng': -77.4341621}
 locality = ''
 

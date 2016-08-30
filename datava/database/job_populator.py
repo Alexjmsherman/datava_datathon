@@ -13,7 +13,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 # initiate google maps api connection
-gmaps = googlemaps.Client(key='AIzaSyAb416HhO9hmtIBYR4Zl-zZ3QAF0m7nJGE')
+gmaps = googlemaps.Client(key='INSERT_API_KEY_HERE')
 
 # read in jobs data
 data = pd.read_table(r'C:\Users\alsherman\Desktop\Programming\hackathon\joblistings.merged.parsed.unique.grpbyyear.2016.tsv', sep='\t')
